@@ -3,7 +3,9 @@ from Crypto.Protocol.KDF import PBKDF2
 from os import urandom
 import struct
 import base64
-import sys,getopt
+import sys
+import argparse
+from argparse import RawTextHelpFormatter
 dic=dict()
 def key_iv_generatorformechanics(passwd):
 		#for cbc mode of AES-256/Rijndael-256 cipher these are required
@@ -63,10 +65,11 @@ class mechanicsAES256:
 				chunkl += 16 - len(plainTexttoencrypt)%16
 				plainTexttoencrypt+=chr(chunkl)*chunkl
 			return self.encsalt+self.iv+cipher_config_entext.encrypt(plainTexttoencrypt) #doubtful
-	def decrypt_text(self,enctext):
+	@staticmethod	
+	def decrypt_text(key,enctext):
 		####read bytes from enctext
-		salt,iv=enctext[:16],enctext[16:32]  #first 
-		cipher_config_detext=AES.new(key,AES.MODE_CBC,iv)
+		salt,iv_de=enctext[:16],enctext[16:32]  #first 
+		cipher_config_detext=AES.new(key,AES.MODE_CBC,iv_de)
 		return cipher_config_detext.decrypt(enctext[32:]);
 '''
 iv,key,salt=key_iv_generatorformechanics('password')
@@ -76,5 +79,51 @@ d=y.encrypt_text('thisisareallyreallyreallylongtext')
 print(d)
 print(y.decrypt_text(d))
 '''
-class structure:
-	def __init__(self,
+def runtime_mode():
+	modes=['filenc','filedec','textenc','textdec','passwdmngr']
+	desc='''
+	v3cryp7: File encryption/decryption with AES-256, Password manager tool written in Python\n
+	file modes : {0} & {1}
+	\'-I\' is required in file modes, but \'-O\' is optional\n
+	text modes : {2} & {3}
+	\'Either \'--ptext\' or \'--ctext\' is required in text modes
+	for {4} \'--ptext\' is required
+	for {5} \'--ctext\' is required\n
+	password manager : {6}
+	'''.format(modes[0],modes[1],modes[2],modes[3],modes[2],modes[3],modes[4])
+	mode='''
+	Available modes :
+	{0}			File Encryption Mode,
+	{1} 		File Decryption Mode,
+	{2}			Text Encryption Mode,
+	{3}			Text Decryption Mode,
+	{4}			Password Manager
+	'''.format(modes[0],modes[1],modes[2],modes[3],modes[4])
+	parser=argparse.ArgumentParser(prog='v3cryp7',prefix_chars='-',formatter_class=RawTextHelpFormatter,description=desc,epilog='Enjoy!')
+	parser.add_argument('-i','--interactive',action='store_true',help='use this option to enable interactive mode')
+	parser.add_argument('mode',action='store',help=mode)
+	parser.add_argument('-I','--input-file',action='store',help='file to be encrypted/decrypted')
+	parser.add_argument('-O','--output-file',action='store',default=None,help='output file name')
+	parser.add_argument('--ptext',action='store',help='plaintext to encrypt')
+	parser.add_argument('--ctext',action='store',help='cipher text to decrypt')
+	#add more arguments for export after creating missc funcs
+	args_parsed=parser.parse_args()
+	if args_parsed.interactive==True:
+		print('[-]Starting interactive mode...')
+		#add interactive func
+	else:
+		if args_parsed.mode=='filenc':
+			print('File Encryption Mode\n')
+		elif args_parsed.mode=='filedec':
+			print('File Decryption Mode\n')
+		elif args_parsed.mode=='textenc':
+			print('Text Encryption Mode\n')
+		elif args_parsed.mode=='textdec':
+			print('Text Decryption Mode\n')
+		elif args_parsed.mode=='passwdmngr':
+			pass
+			#add password manager
+		else:
+			print('v3cryp7: unrecognized mode: \'{}\''.format(args_parsed.mode))
+			print('v3cryp7: Try \'v3cryp7 --help\' for more information')
+runtime_mode()
