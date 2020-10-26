@@ -56,7 +56,7 @@ class mechanicsAES256:
 	def encrypt_text(self,plainTexttoencrypt):
 		cipher_config_entext=AES.new(self.key,AES.MODE_CBC,self.iv)
 		chunkl=0
-		while True: #·ÿ(è²Å¸×Å9è=ö
+		while True: 
 			if len(plainTexttoencrypt)==0:
 				break
 			elif len(plainTexttoencrypt) % 16 != 0:
@@ -65,9 +65,16 @@ class mechanicsAES256:
 			return self.encsalt+self.iv+cipher_config_entext.encrypt(plainTexttoencrypt) #doubtful
 	def decrypt_text(self,enctext):
 		####read bytes from enctext
-		cipher_config_detext=AES.new(key,AES.MODE_CBC,iv) #add padding support
-		return cipher_config_detext.decrypt(enctext.encode('utf-8'));
+		salt,iv=enctext[:16],enctext[16:32]  #first 
+		cipher_config_detext=AES.new(key,AES.MODE_CBC,iv)
+		return cipher_config_detext.decrypt(enctext[32:]);
+'''
 iv,key,salt=key_iv_generatorformechanics('password')
 print(iv,key,salt)
-y=mechanicsAES256(iv,key,salt).encrypt_text('thisisatext')
-print(y)
+y=mechanicsAES256(iv,key,salt)
+d=y.encrypt_text('thisisareallyreallyreallylongtext')
+print(d)
+print(y.decrypt_text(d))
+'''
+class structure:
+	def __init__(self,
