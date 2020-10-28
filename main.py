@@ -9,6 +9,7 @@ from argparse import RawTextHelpFormatter
 import textwrap
 import getpass
 import time
+import colorama
 dic=dict()
 def unpad(s):
 	return s[:-ord(s[len(s)-1:])]
@@ -135,7 +136,7 @@ def runtime_mode():
 			if not args_parsed.inpf=='':
 				if os.path.isfile(args_parsed.inpf):
 					filedec=mechanicsAES256.decrypt_file(args_parsed.inpf,getpass.getpass('Enter password: '),args_parsed.outf)
-					print('\n'+filedec+' has been saved to {}/'.format(os.getcwd()))
+					print('\n'+str(filedec)+' has been saved to {}/'.format(os.getcwd()))
 				else: raise Exception('File: \'{}\' does not exist'.format(args_parsed.inpf))
 		elif args_parsed.mode=='textenc':
 			print('Text Encryption Mode\n')
@@ -155,6 +156,8 @@ def runtime_mode():
 			if not args_parsed.ctext=='':
 				textdec=mechanicsAES256.decrypt_text(getpass.getpass('Enter password: '),base64.b64decode(args_parsed.ctext))
 				print('\nDecrypted text: '+textdec)
+				if textdec=='':
+					print("Invalid password or no decryption occured. Contact developer.\n")
 		elif args_parsed.mode=='passwdmngr':
 			pass
 			#add password manager
