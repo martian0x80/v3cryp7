@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 import textwrap
 import getpass
 import time
-import colorama
+from colorama import Fore as color
 dic=dict()
 def unpad(s):
 	return s[:-ord(s[len(s)-1:])]
@@ -88,8 +88,31 @@ d=y.encrypt_text('thisisareallyreallyreallylongtext')
 print(d)
 print(y.decrypt_text(d))
 '''
+def get_input():
+	inp=raw_input('\n>> ')
+	if inp=='':
+		print('Empty input supplied\nTry again. Or exit')
+		get_input()
+	else:
+		return inp;
+def interactive_mode():
+	print(color.BLUE+"Starting interactive mode..."+color.RESET)
+	menu='''
+	Functions :\n
+	1. Text Encryption	(1 or textenc)
+	2. Text Decryption	(2 or textdec)
+	3. File Encryption	(3 or filenc)
+	4. File Decryption	(4 or filedec)
+	5. Password Manager	(5 or passwdmngr)
+	6. Exit (6 or exit)
+	''' #add keyboard ctrl+c support
+	print(menu)
+	#inp=get_input()
+	#if inp==1 or inp()=='textenc':
+	#	
+	#elif 
 def runtime_mode():
-	modes=['filenc','filedec','textenc','textdec','passwdmngr']
+	modes=['filenc','filedec','textenc','textdec','passwdmngr','i']
 	desc='''
 	v3cryp7: File encryption/decryption with AES-256, Password manager tool written in Python\n
 	file modes : {0} & {1}\n
@@ -110,36 +133,42 @@ def runtime_mode():
 	'''.format(modes[0],modes[1],modes[2],modes[3],modes[4])
 	parser=argparse.ArgumentParser(prog='v3cryp7',usage='use: %(prog)s [mode]... [options]...',prefix_chars='-',description=textwrap.dedent(desc),formatter_class=RawTextHelpFormatter,epilog='Enjoy!')
 	parser.add_argument('-i','--interactive',action='store_true',help='use this option to enable interactive mode')
-	parser.add_argument('mode',action='store',help=textwrap.dedent(mode))
+	#parser.add_argument('mode',action='store',help=textwrap.dedent(mode)) not reasonable
+	mode=parser.add_argument_group('mode')
+	mode.add_argument('--filenc',action='store_true',help='File Encryption Mode')
+	mode.add_argument('--filedec',action='store_true',help='File Decryption Mode')
+	mode.add_argument('--textenc',action='store_true',help='Text Encryption Mode')
+	mode.add_argument('--textdec',action='store_true',help='Text Decryption Mode')
+	mode.add_argument('--passwdmngr',action='store_true',help='Password Manager')
 	parser.add_argument('-I','--input-file',dest='inpf',action='store',help='file to be encrypted/decrypted')
 	parser.add_argument('-O','--output-file',dest='outf',action='store',default=None,help='output file name')
 	parser.add_argument('--ptext',action='store',help='plaintext to encrypt')
 	parser.add_argument('--ctext',action='store',help='cipher text to decrypt')
 	parser.add_argument('-o','--output',action='store_true',help='to enable saving encrypted/decrypted data to files')
 	#add more arguments for export after creating missc funcs
+	##remove mode pos arg and add opt arg for each mode with action='store_true' 
 	args_parsed=parser.parse_args()
-	if args_parsed.interactive==True:
-		print('[-]Starting interactive mode...')
-		#add interactive func
+	if args_parsed.interactive:
+		interactive_mode()
 	else:
 		#print(args_parsed.mode,args_parsed.inpf)
-		if args_parsed.mode=='filenc':
-			print('File Encryption Mode\n')
+		if args_parsed.filenc:
+			print('\n[-]File Encryption Mode\n')
 			if not args_parsed.inpf=='':
 				if os.path.isfile(args_parsed.inpf):
 					iv,key,salt=key_iv_generatorformechanics(getpass.getpass('Enter password: '))
 					filenc=mechanicsAES256(iv,key,salt)
 					print('\n'+filenc.encrypt_file(args_parsed.inpf,args_parsed.outf)+' has been saved to {}/'.format(os.getcwd()))
 				else: raise Exception('File: \'{}\' does not exist'.format(args_parsed.inpf))
-		elif args_parsed.mode=='filedec':
-			print('File Decryption Mode\n')
+		if args_parsed.filedec:
+			print('\n[-]File Decryption Mode\n')
 			if not args_parsed.inpf=='':
 				if os.path.isfile(args_parsed.inpf):
 					filedec=mechanicsAES256.decrypt_file(args_parsed.inpf,getpass.getpass('Enter password: '),args_parsed.outf)
 					print('\n'+str(filedec)+' has been saved to {}/'.format(os.getcwd()))
 				else: raise Exception('File: \'{}\' does not exist'.format(args_parsed.inpf))
-		elif args_parsed.mode=='textenc':
-			print('Text Encryption Mode\n')
+		if args_parsed.textenc: #add clipboard support
+			print('\n[-]Text Encryption Mode\n')
 			if not args_parsed.ptext=='':
 				iv,key,salt=key_iv_generatorformechanics(getpass.getpass('Enter password: '))
 				textenc=mechanicsAES256(iv,key,salt)
@@ -151,18 +180,18 @@ def runtime_mode():
 					with open('ciphertext'+str(time.time())+'.txt','wr+') as cipherfile:
 						cipherfile.write(str(base64.b64encode(textenc.encrypt_text(args_parsed.ptext))))
 						print('File: \'{}\' saved in {}'.format(str(cipherfile),str(os.getcwd())))
-		elif args_parsed.mode=='textdec':
-			print('Text Decryption Mode\n')
+		if args_parsed.textdec:
+			print('\n[-]Text Decryption Mode\n')
 			if not args_parsed.ctext=='':
 				textdec=mechanicsAES256.decrypt_text(getpass.getpass('Enter password: '),base64.b64decode(args_parsed.ctext))
 				print('\nDecrypted text: '+textdec)
 				if textdec=='':
-					print("Invalid password or no decryption occured. Contact developer.\n")
-		elif args_parsed.mode=='passwdmngr':
+					print("Invalid password or no decryption occured.\n")
+		if args_parsed.passwdmngr:
 			pass
 			#add password manager
-		else:
-			print('v3cryp7: unrecognized mode: \'{}\''.format(args_parsed.mode))
+		if not args_parsed.textdec and not args_parsed.textenc and not args_parsed.filenc and not args_parsed.filedec and not args_parsed.interactive and not args_parsed.passwdmngr:
+			print('v3cryp7: unrecognized mode')
 			print('v3cryp7: Try \'v3cryp7 --help\' for more information')
 #iv,key,salt=key_iv_generatorformechanics('kunj2004')
 #mechanicsAES256.decrypt_file('en.py.enc','kunj2004')
