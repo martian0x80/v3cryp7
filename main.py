@@ -11,6 +11,17 @@ import getpass
 import time
 from colorama import Fore as color
 dic=dict()
+def spinner():
+
+	print("processing...\\")
+	syms = ['\\', '|', '/', '-']
+	bs = '\b'
+
+	for _ in range(5):
+		for sym in syms:
+			sys.stdout.write("\b%s" % sym)
+			sys.stdout.flush()
+			time.sleep(.25)
 def unpad(s):
 	return s[:-ord(s[len(s)-1:])]
 def key_iv_generatorformechanics(passwd):
@@ -96,7 +107,7 @@ def get_input():
 	else:
 		return inp;
 def interactive_mode():
-	print(color.BLUE+"Starting interactive mode..."+color.RESET)
+	print(color.GREEN+"\t\tStarting interactive mode..."+color.RESET)
 	menu='''
 	Functions :\n
 	1. Text Encryption	(1 or textenc)
@@ -106,6 +117,7 @@ def interactive_mode():
 	5. Password Manager	(5 or passwdmngr)
 	6. Exit (6 or exit)
 	''' #add keyboard ctrl+c support
+	spinner()
 	print(menu)
 	#inp=get_input()
 	#if inp==1 or inp()=='textenc':
