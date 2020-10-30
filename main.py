@@ -11,6 +11,11 @@ import getpass
 import time
 from colorama import Fore as color
 dic=dict()
+def clear_screen():
+	if os.name=='nt':
+		os.system('cls')
+	else:
+		os.system('clear')
 def spinner():
 
 	print('processing.../')
@@ -99,14 +104,14 @@ d=y.encrypt_text('thisisareallyreallyreallylongtext')
 print(d)
 print(y.decrypt_text(d))
 '''
-def get_input(flag=False,exceptt=False):
+def get_input(flag=False,exceptt=False): #to reduce code and logics
 	try:
-		if flag:
+		if flag: #flag for password inputs
 			passwd = getpass.getpass('Enter session password: ')
 			return passwd;
 		else:
 			inp=raw_input('\n>> ')
-			if exceptt:
+			if exceptt: #empty input exception when taking outfile file
 				return inp;
 			else:
 				if inp=='':
@@ -114,12 +119,12 @@ def get_input(flag=False,exceptt=False):
 					get_input()
 				else:
 					return inp;
-	except KeyboardInterrupt:
-		print('\n[{}!!{}] Execution stopped, user interruption.\n[{}!!{}]Exiting...'.format(color.RED,color.RESET,color.RED,color.RESET))
+	except KeyboardInterrupt: #ctrl+c handling
+		print('\n[{}!!{}]Execution stopped, user interruption.\n[{}!!{}]Exiting...'.format(color.RED,color.RESET,color.RED,color.RESET))
 		spinner()
 		sys.exit(1)
-def interactive_mode(flag=False):
-	if flag:
+def interactive_mode(flag=False): #interactive mode with argument switch -i or --interactive
+	if flag: #flag for faster menu access, no need of ambigious 'starting interactive mode...' everytime returning to menu 
 		print(color.GREEN+"\t\tStarting interactive mode..."+color.RESET)
 		spinner()
 	menu='''
@@ -149,8 +154,9 @@ def interactive_mode(flag=False):
 				if inpp=='Y' or inpp=='y':
 					pass
 				else:
-					print('[{}-{}]Taking back to menu...'.format(color.YELLOW,color.RESET))
 					flagy=True
+			clear_screen()
+			print('[{}-{}]Taking back to menu...'.format(color.CYAN,color.RESET))
 			interactive_mode()
 		elif inp=='2' or inp=='textdec':
 			print('[{}++{}]Text Decryption Mode...'.format(color.GREEN,color.RESET))
@@ -166,8 +172,9 @@ def interactive_mode(flag=False):
 				if inpp=='Y' or inpp=='y':
 					pass
 				else:
-					print('[{}-{}]Taking back to menu...'.format(color.YELLOW,color.RESET))
+					print('[{}-{}]Taking back to menu...'.format(color.CYAN,color.RESET))
 					flagy=True
+			clear_screen()
 			interactive_mode()
 		elif inp=='3' or inp=='fileenc':
 			print('[{}++{}]File Encryption Mode...'.format(color.GREEN,color.RESET))
@@ -187,8 +194,9 @@ def interactive_mode(flag=False):
 				if inpp=='Y' or inpp=='y':
 					pass
 				else:
-					print('[{}-{}]Taking back to menu...'.format(color.YELLOW,color.RESET))
+					print('[{}-{}]Taking back to menu...'.format(color.CYAN,color.RESET))
 					flagy=True
+			clear_screen()
 			interactive_mode()
 		elif inp=='4' or inp=='filedec':
 			print('[{}++{}]File Decryption Mode...'.format(color.GREEN,color.RESET))
@@ -207,8 +215,9 @@ def interactive_mode(flag=False):
 				if inpp=='Y' or inpp=='y':
 					pass
 				else:
-					print('[{}-{}]Taking back to menu...'.format(color.YELLOW,color.RESET))
+					print('[{}-{}]Taking back to menu...'.format(color.CYAN,color.RESET))
 					flagy=True
+			clear_screen()
 			interactive_mode()
 		elif inp=='5' or inp=='passwdmngr':
 			print('[{}++{}]Password Manager...'.format(color.GREEN,color.RESET))
@@ -220,7 +229,7 @@ def interactive_mode(flag=False):
 			print('Invalid mode recieved.\nRetry...')
 			interactive_mode()
 	except KeyboardInterrupt:
-		print('[{}!!{}] Execution stopped, user interruption.\n[{}!!{}]Exiting...'.format(color.RED,color.RESET,color.RED,color.RESET))
+		print('[{}!!{}]Execution stopped, user interruption.\n[{}!!{}]Exiting...'.format(color.RED,color.RESET,color.RED,color.RESET))
 		spinner()
 		sys.exit(1)
 def runtime_mode():
