@@ -13,7 +13,7 @@ from colorama import Fore as color
 dic=dict()
 def spinner():
 
-	print("processing...\\")
+	print('processing.../')
 	syms = ['\\', '|', '/', '-']
 	bs = '\b'
 
@@ -99,15 +99,29 @@ d=y.encrypt_text('thisisareallyreallyreallylongtext')
 print(d)
 print(y.decrypt_text(d))
 '''
-def get_input():
-	inp=raw_input('\n>> ')
-	if inp=='':
-		print('Empty input supplied\nTry again. Or exit')
-		get_input()
-	else:
-		return inp;
-def interactive_mode():
-	print(color.GREEN+"\t\tStarting interactive mode..."+color.RESET)
+def get_input(flag=False,exceptt=False):
+	try:
+		if flag:
+			passwd = getpass.getpass('Enter session password: ')
+			return passwd;
+		else:
+			inp=raw_input('\n>> ')
+			if exceptt:
+				return inp;
+			else:
+				if inp=='':
+					print('Empty input supplied\nTry again. Or exit')
+					get_input()
+				else:
+					return inp;
+	except KeyboardInterrupt:
+		print('\n[{}!!{}] Execution stopped, user interruption.\n[{}!!{}]Exiting...'.format(color.RED,color.RESET,color.RED,color.RESET))
+		spinner()
+		sys.exit(1)
+def interactive_mode(flag=False):
+	if flag:
+		print(color.GREEN+"\t\tStarting interactive mode..."+color.RESET)
+		spinner()
 	menu='''
 	Functions :\n
 	1. Text Encryption	(1 or textenc)
@@ -117,12 +131,98 @@ def interactive_mode():
 	5. Password Manager	(5 or passwdmngr)
 	6. Exit (6 or exit)
 	''' #add keyboard ctrl+c support
-	spinner()
 	print(menu)
-	#inp=get_input()
-	#if inp==1 or inp()=='textenc':
-	#	
-	#elif 
+	try:
+		inp=get_input()
+		if inp=='1' or inp=='textenc':
+			print('[{}++{}]Text Encryption Mode...'.format(color.GREEN,color.RESET))
+			passwd=get_input(flag=True)
+			iv,key,salt=key_iv_generatorformechanics(passwd)
+			flagy=False
+			while flagy==False:
+				print('\nInput the text to encrypt')
+				plaintext=get_input()
+				encrypt=mechanicsAES256(iv,key,salt).encrypt_text(plaintext)
+				print('\nCiphertext: '+base64.b64encode(encrypt))
+				print('\nMore text to encrypt? [y/N]')
+				inpp=get_input(exceptt=True)
+				if inpp=='Y' or inpp=='y':
+					pass
+				else:
+					print('[{}-{}]Taking back to menu...'.format(color.YELLOW,color.RESET))
+					flagy=True
+			interactive_mode()
+		elif inp=='2' or inp=='textdec':
+			print('[{}++{}]Text Decryption Mode...'.format(color.GREEN,color.RESET))
+			passwd=get_input(flag=True)
+			flagy=False
+			while flagy==False:
+				print('\nInput the text to decrypt')
+				ciphertext=get_input()
+				decrypt=mechanicsAES256.decrypt_text(passwd,base64.b64decode(ciphertext))
+				print('\nPlaintext: '+base64.b64decode(decrypt))
+				print('\nMore text to decrypt? [y/N]')
+				inpp=get_input(exceptt=True)
+				if inpp=='Y' or inpp=='y':
+					pass
+				else:
+					print('[{}-{}]Taking back to menu...'.format(color.YELLOW,color.RESET))
+					flagy=True
+			interactive_mode()
+		elif inp=='3' or inp=='fileenc':
+			print('[{}++{}]File Encryption Mode...'.format(color.GREEN,color.RESET))
+			fileout=None
+			passwd=get_input(flag=True)
+			iv,key,salt=key_iv_generatorformechanics(passwd)
+			flagy=False
+			while flagy==False:
+				print('\nThe file to encrypt [{}*{}]'.format(color.MAGENTA,color.RESET))
+				filein=get_input()
+				print('\nOutput file name [you can skip it]')
+				fileout=get_input(exceptt=True)
+				encrypt=mechanicsAES256(iv,key,salt).encrypt_file(filein,fileout)
+				print('\nFile \'{}\' saved to {}'.format(encrypt,os.getcwd()))
+				print('\nMore files to encrypt? [y/N]')
+				inpp=get_input(exceptt=True)
+				if inpp=='Y' or inpp=='y':
+					pass
+				else:
+					print('[{}-{}]Taking back to menu...'.format(color.YELLOW,color.RESET))
+					flagy=True
+			interactive_mode()
+		elif inp=='4' or inp=='filedec':
+			print('[{}++{}]File Decryption Mode...'.format(color.GREEN,color.RESET))
+			fileout=None
+			passwd=get_input(flag=True)
+			flagy=False
+			while flagy==False:
+				print('\nThe file to decrypt [{}*{}]'.format(color.MAGENTA,color.RESET))
+				filein=get_input()
+				print('\nOutput file name [you can skip it]')
+				fileout=get_input(exceptt=True)
+				decrypt=mechanicsAES256.decrypt_file(filein,passwd,fileout)
+				print('\nFile \'{}\' saved to {}'.format(decrypt,os.getcwd()))
+				print('\nMore files to decrypt? [y/N]')
+				inpp=get_input(exceptt=True)
+				if inpp=='Y' or inpp=='y':
+					pass
+				else:
+					print('[{}-{}]Taking back to menu...'.format(color.YELLOW,color.RESET))
+					flagy=True
+			interactive_mode()
+		elif inp=='5' or inp=='passwdmngr':
+			print('[{}++{}]Password Manager...'.format(color.GREEN,color.RESET))
+		elif inp=='6' or inp=='exit' or inp=='quit':
+			print('[{}!!{}] Execution stopped, user interruption.\n[{}!!{}]Exiting...'.format(color.RED,color.RESET,color.RED,color.RESET))
+			spinner()
+			sys.exit(1)
+		else:
+			print('Invalid mode recieved.\nRetry...')
+			interactive_mode()
+	except KeyboardInterrupt:
+		print('[{}!!{}] Execution stopped, user interruption.\n[{}!!{}]Exiting...'.format(color.RED,color.RESET,color.RED,color.RESET))
+		spinner()
+		sys.exit(1)
 def runtime_mode():
 	modes=['filenc','filedec','textenc','textdec','passwdmngr','i']
 	desc='''
@@ -161,7 +261,7 @@ def runtime_mode():
 	##remove mode pos arg and add opt arg for each mode with action='store_true' 
 	args_parsed=parser.parse_args()
 	if args_parsed.interactive:
-		interactive_mode()
+		interactive_mode(flag=True)
 	else:
 		#print(args_parsed.mode,args_parsed.inpf)
 		if args_parsed.filenc:
@@ -203,8 +303,8 @@ def runtime_mode():
 			pass
 			#add password manager
 		if not args_parsed.textdec and not args_parsed.textenc and not args_parsed.filenc and not args_parsed.filedec and not args_parsed.interactive and not args_parsed.passwdmngr:
-			print('v3cryp7: unrecognized mode')
-			print('v3cryp7: Try \'v3cryp7 --help\' for more information')
+			print('{}v3cryp7{}: unrecognized mode'.format(color.RED,color.RESET))
+			print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
 #iv,key,salt=key_iv_generatorformechanics('kunj2004')
 #mechanicsAES256.decrypt_file('en.py.enc','kunj2004')
 runtime_mode()
