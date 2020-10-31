@@ -6,7 +6,7 @@ import base64
 import sys
 import argparse
 from argparse import RawTextHelpFormatter
-import textwrap
+import textwrap 
 import getpass
 import time
 from colorama import Fore as color
@@ -27,7 +27,7 @@ def spinner():
 			sys.stdout.write("\b%s" % sym)
 			sys.stdout.flush()
 			time.sleep(.25)
-def unpad(s):
+def _unpad(s):
 	return s[:-ord(s[len(s)-1:])]
 def key_iv_generatorformechanics(passwd):
 		#for cbc mode of AES-256/Rijndael-256 cipher these are required
@@ -43,8 +43,11 @@ class mechanicsAES256:
 		self.iv=iv
 		self.encsalt=salt
 	def encrypt_file(self,filein,fileout=None,chunkSize=64*1024):
+		#filein=os.path.basename(os.path.splitext(filein))[0]		
 		if not fileout:
 			fileout=filein+'.enc'
+		else:
+			fileout=fileout+'.enc'
 		filesize=os.path.getsize(filein)
 		cipher_config_en=AES.new(self.key,AES.MODE_CBC,self.iv)
 		with open(filein,'rb') as infile:
@@ -77,8 +80,8 @@ class mechanicsAES256:
 					if len(chunk)==0:
 						break
 					outfile.write(cipher_config_de.decrypt(chunk))
-				outfile.truncate(filesize_original)
-				return str(outfile);
+				#outfile.truncate(filesize_original)
+				return str(plainTextfile);
 	def encrypt_text(self,plainTexttoencrypt):
 		cipher_config_entext=AES.new(self.key,AES.MODE_CBC,self.iv)
 		chunkl=0
@@ -92,7 +95,7 @@ class mechanicsAES256:
 	@staticmethod	
 	def decrypt_text(passwd,enctext):
 		####read bytes from enctext
-		salt,iv_de=enctext[:16],enctext[16:32]  #first 
+		salt,iv_de=enctext[:16],enctext[16:32]  #first 16 bytes are salt, next 16 are iv
 		key=PBKDF2(passwd.encode('utf-8'),salt,dkLen=32,count=10000)
 		cipher_config_detext=AES.new(key,AES.MODE_CBC,iv_de)
 		return unpad(cipher_config_detext.decrypt(enctext[32:]));
@@ -148,7 +151,7 @@ def interactive_mode(flag=False): #interactive mode with argument switch -i or -
 				print('\nInput the text to encrypt')
 				plaintext=get_input()
 				encrypt=mechanicsAES256(iv,key,salt).encrypt_text(plaintext)
-				print('\nCiphertext: '+base64.b64encode(encrypt))
+				print('\n{}Ciphertext{}: {}'.format(color.LIGHTGREEN_EX,color.RESET,base64.b64encode(encrypt)))
 				print('\nMore text to encrypt? [y/N]')
 				inpp=get_input(exceptt=True)
 				if inpp=='Y' or inpp=='y':
@@ -166,7 +169,7 @@ def interactive_mode(flag=False): #interactive mode with argument switch -i or -
 				print('\nInput the text to decrypt')
 				ciphertext=get_input()
 				decrypt=mechanicsAES256.decrypt_text(passwd,base64.b64decode(ciphertext))
-				print('\nPlaintext: '+base64.b64decode(decrypt))
+				print('\n{}Plaintext{}: {}'.format(color.LIGHTGREEN_EX,color.RESET,base64.b64decode(decrypt)))
 				print('\nMore text to decrypt? [y/N]')
 				inpp=get_input(exceptt=True)
 				if inpp=='Y' or inpp=='y':
@@ -188,7 +191,7 @@ def interactive_mode(flag=False): #interactive mode with argument switch -i or -
 				print('\nOutput file name [you can skip it]')
 				fileout=get_input(exceptt=True)
 				encrypt=mechanicsAES256(iv,key,salt).encrypt_file(filein,fileout)
-				print('\nFile \'{}\' saved to {}'.format(encrypt,os.getcwd()))
+				print('\nFile \'{}{}{}\' saved to {}'.format(color.MAGENTA,encrypt,color.RESET,os.getcwd()))
 				print('\nMore files to encrypt? [y/N]')
 				inpp=get_input(exceptt=True)
 				if inpp=='Y' or inpp=='y':
@@ -209,7 +212,7 @@ def interactive_mode(flag=False): #interactive mode with argument switch -i or -
 				print('\nOutput file name [you can skip it]')
 				fileout=get_input(exceptt=True)
 				decrypt=mechanicsAES256.decrypt_file(filein,passwd,fileout)
-				print('\nFile \'{}\' saved to {}'.format(decrypt,os.getcwd()))
+				print('\nFile \'{}{}{}\' saved to {}'.format(color.MAGENTA,decrypt,color.RESET,os.getcwd()))
 				print('\nMore files to decrypt? [y/N]')
 				inpp=get_input(exceptt=True)
 				if inpp=='Y' or inpp=='y':
@@ -221,12 +224,14 @@ def interactive_mode(flag=False): #interactive mode with argument switch -i or -
 			interactive_mode()
 		elif inp=='5' or inp=='passwdmngr':
 			print('[{}++{}]Password Manager...'.format(color.GREEN,color.RESET))
+			#password manager
 		elif inp=='6' or inp=='exit' or inp=='quit':
 			print('[{}!!{}] Execution stopped, user interruption.\n[{}!!{}]Exiting...'.format(color.RED,color.RESET,color.RED,color.RESET))
 			spinner()
+			clear_screen()
 			sys.exit(1)
 		else:
-			print('Invalid mode recieved.\nRetry...')
+			print('[{}!!{}]Invalid mode recieved.\nRetry...'.format(color.RED,color.RESET))
 			interactive_mode()
 	except KeyboardInterrupt:
 		print('[{}!!{}]Execution stopped, user interruption.\n[{}!!{}]Exiting...'.format(color.RED,color.RESET,color.RED,color.RESET))
@@ -274,40 +279,40 @@ def runtime_mode():
 	else:
 		#print(args_parsed.mode,args_parsed.inpf)
 		if args_parsed.filenc:
-			print('\n[-]File Encryption Mode\n')
+			print('\n[{}+{}]File Encryption Mode\n'.format(color.GREEN,color.RESET))
 			if not args_parsed.inpf=='':
 				if os.path.isfile(args_parsed.inpf):
 					iv,key,salt=key_iv_generatorformechanics(getpass.getpass('Enter password: '))
 					filenc=mechanicsAES256(iv,key,salt)
 					print('\n'+filenc.encrypt_file(args_parsed.inpf,args_parsed.outf)+' has been saved to {}/'.format(os.getcwd()))
-				else: raise Exception('File: \'{}\' does not exist'.format(args_parsed.inpf))
+				else: raise Exception('[{}!{}]File: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
 		if args_parsed.filedec:
-			print('\n[-]File Decryption Mode\n')
+			print('\n[{}+{}]File Decryption Mode\n'.format(color.GREEN,color.RESET))
 			if not args_parsed.inpf=='':
 				if os.path.isfile(args_parsed.inpf):
 					filedec=mechanicsAES256.decrypt_file(args_parsed.inpf,getpass.getpass('Enter password: '),args_parsed.outf)
-					print('\n'+str(filedec)+' has been saved to {}/'.format(os.getcwd()))
-				else: raise Exception('File: \'{}\' does not exist'.format(args_parsed.inpf))
+					print('\n\'{}{}{}\' has been saved to {}/'.format(color.MAGENTA,str(filedec),color.RESET,os.getcwd()))
+				else: raise Exception('[{}!{}]File: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
 		if args_parsed.textenc: #add clipboard support
-			print('\n[-]Text Encryption Mode\n')
+			print('\n[{}+{}]Text Encryption Mode\n'.format(color.GREEN,color.RESET))
 			if not args_parsed.ptext=='':
 				iv,key,salt=key_iv_generatorformechanics(getpass.getpass('Enter password: '))
-				textenc=mechanicsAES256(iv,key,salt)
-				print('\nCipher text: '+base64.b64encode(textenc.encrypt_text(args_parsed.ptext))+'\n')
+				textenc=mechanicsAES256(iv,key,salt).encrypt_text(args_parsed.ptext)
+				print('\n{}Cipher text{}: {}\n'.format(color.LIGHTGREEN_EX,color.RESET,base64.b64encode(textenc)))
 				#print('Want the cipher text saved to a file? [y/N]')
 				if args_parsed.output:
 					#ask=raw_input('\n>> ')
 					#if ask=='y' or ask=='Y':
 					with open('ciphertext'+str(time.time())+'.txt','wr+') as cipherfile:
-						cipherfile.write(str(base64.b64encode(textenc.encrypt_text(args_parsed.ptext))))
-						print('File: \'{}\' saved in {}'.format(str(cipherfile),str(os.getcwd())))
+						cipherfile.write(str(base64.b64encode(textenc)))
+						print('File: \'{}{}{}\' saved in {}'.format(color.MAGENTA,str(cipherfile.name),color.RESET,str(os.getcwd())))
 		if args_parsed.textdec:
-			print('\n[-]Text Decryption Mode\n')
+			print('\n[{}+{}]Text Decryption Mode\n'.format(color.GREEN,color.RESET))
 			if not args_parsed.ctext=='':
 				textdec=mechanicsAES256.decrypt_text(getpass.getpass('Enter password: '),base64.b64decode(args_parsed.ctext))
-				print('\nDecrypted text: '+textdec)
+				print('\n{}Decrypted text{}: {}'.format(color.LIGHTGREEN_EX,color.RESET,textdec))
 				if textdec=='':
-					print("Invalid password or no decryption occured.\n")
+					print("[{}!{}]Invalid password or no decryption occured.\n".format(color.RED,color.RESET))
 		if args_parsed.passwdmngr:
 			pass
 			#add password manager
