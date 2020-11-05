@@ -94,16 +94,26 @@ class mechanicsAES256:
 				
 	def encrypt_folder(self,flin,flout=None): #no separate iv,salt,key,needed
 		dustlist=os.listdir(flin)
-		fol_ls=[]
-		fil_ls=[]
-		for fol in dustlist:
-			if os.path.isdir(flin+'/'+fol):
-				fol_ls.append(fol)
-		for fil in dustlist:
-			if os.path.isfile(flin+'/'+fil):
-				fil_ls.append(fil)
-		return fol_ls,fil_ls;
+		subdirs_path=[]
+		file_paths=[]
+		print('Scanning directory for files and folders.\n')
+		print('\n[{}*{}]Subdirectories found: '.format(color.MAGENTA,color.RESET))
+		for subdirs in dustlist:
+			if os.path.isdir(flin+'/'+subdirs): #doubtl
+				if '.git' in subdirs:
+					dustlist.remove('.git')
+				print('\t'+os.path.abspath(subdirs))
+				subdirs_path.append(os.path.abspath(subdirs))
+		print('[{}*{}]Files found: '.format(color.MAGENTA,color.RESET))
+		for dirpath,dirnames,filenames in os.walk(flin):
+			if '.git' in dirnames:
+				dirnames.remove('.git')
+			else:
+				for names in filenames:
+					print('\t'+os.path.join(dirpath,names))
+					file_paths.append(os.path.join(dirpath,names))
 		
+				
 	def encrypt_text(self,plainTexttoencrypt):
 		cipher_config_entext=AES.new(self.key,AES.MODE_CBC,self.iv)
 		chunkl=0
