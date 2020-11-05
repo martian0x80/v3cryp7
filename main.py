@@ -68,6 +68,7 @@ class mechanicsAES256:
 					elif len(chunk) % AES.block_size != 0:
 						chunk+=' ' * (16 - len(chunk) % 16)
 					outfile.write(cipher_config_en.encrypt(chunk))
+				print('\nFile size: {}{}{}'.format(color.LIGHTGREEN_EX,filesize,color.RESET))
 				return str(fileout);
 				
 	@staticmethod
@@ -87,9 +88,22 @@ class mechanicsAES256:
 					if len(chunk)==0:
 						break
 					outfile.write(cipher_config_de.decrypt(chunk))
-				#outfile.truncate(filesize_original)
+				#outfile.truncate(filesize_original
+				print('File size: {}{}{}'.format(color.LIGHTGREEN_EX,os.path.getsize(plainTextfile),color.RESET))
 				return str(plainTextfile);
 				
+	def encrypt_folder(self,flin,flout=None): #no separate iv,salt,key,needed
+		dustlist=os.listdir(flin)
+		fol_ls=[]
+		fil_ls=[]
+		for fol in dustlist:
+			if os.path.isdir(flin+'/'+fol):
+				fol_ls.append(fol)
+		for fil in dustlist:
+			if os.path.isfile(flin+'/'+fil):
+				fil_ls.append(fil)
+		return fol_ls,fil_ls;
+		
 	def encrypt_text(self,plainTexttoencrypt):
 		cipher_config_entext=AES.new(self.key,AES.MODE_CBC,self.iv)
 		chunkl=0
@@ -108,6 +122,7 @@ class mechanicsAES256:
 		key=PBKDF2(passwd.encode('utf-8'),salt,dkLen=32,count=10000)
 		cipher_config_detext=AES.new(key,AES.MODE_CBC,iv_de)
 		return unpad(cipher_config_detext.decrypt(enctext[32:]));
+	
 '''
 iv,key,salt=key_iv_generatorformechanics('password')
 print(iv,key,salt)
@@ -287,8 +302,8 @@ def runtime_mode():
 	mode.add_argument('--textenc',action='store_true',help='Text Encryption Mode')
 	mode.add_argument('--textdec',action='store_true',help='Text Decryption Mode')
 	mode.add_argument('--passwdmngr',action='store_true',help='Password Manager')
-	parser.add_argument('-I','--input-file',dest='inpf',action='store',help='file to be encrypted/decrypted')
-	parser.add_argument('-O','--output-file',dest='outf',action='store',default=None,help='output file name')
+	parser.add_argument('-I','--input-fl',dest='inpf',action='store',help='file to be encrypted/decrypted')
+	parser.add_argument('-O','--output-fl',dest='outf',action='store',default=None,help='output file name')
 	parser.add_argument('--ptext',action='store',help='plaintext to encrypt')
 	parser.add_argument('--ctext',action='store',help='cipher text to decrypt')
 	parser.add_argument('-o','--output',action='store_true',help='to enable saving encrypted/decrypted data to files')
@@ -305,8 +320,8 @@ def runtime_mode():
 				if not args_parsed.inpf=='':
 					if os.path.isfile(args_parsed.inpf):
 						iv,key,salt=key_iv_generatorformechanics(getpass.getpass('Enter password: '))
-						filenc=mechanicsAES256(iv,key,salt)
-						print('\n'+filenc.encrypt_file(args_parsed.inpf,args_parsed.outf)+' has been saved to {}/'.format(os.getcwd()))
+						filenc=mechanicsAES256(iv,key,salt).encrypt_file(args_parsed.inpf,args_parsed.outf)
+						print('\'{}{}{}\' has been saved to {}/'.format(color.MAGENTA,str(filenc),color.RESET,os.getcwd()))
 					else: raise Exception('[{}!{}]File: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
 			except TypeError:
 				print('{}v3cryp7{}: No inputs given, \'-I\' is required, \'-O\' is optional'.format(color.RED,color.RESET))
@@ -325,11 +340,13 @@ def runtime_mode():
 				print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
 				
 		if args_parsed.flenc:
-			print('\n[{}+{}]Folder Encryption Mode\n'.format(color.GREEN,color.RESET))
 			try:
+				print('\n[{}+{}]Folder Encryption Mode\n'.format(color.GREEN,color.RESET))
 				if not args_parsed.inpf=='':
 					if os.path.isdir(args_parsed.inpf):
-						pass
+						y=mechanicsAES256(None,None,None).encrypt_folder(args_parsed.inpf)
+						print(y)
+					else: raise Exception('[{}!{}]Folder: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
 			except TypeError:
 				print('{}v3cryp7{}: No inputs given, \'-I\' is required, \'-O\' is optional'.format(color.RED,color.RESET))
 				print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
@@ -368,7 +385,7 @@ def runtime_mode():
 			pass
 			#add password manager
 		
-		if not args_parsed.textdec and not args_parsed.textenc and not args_parsed.filenc and not args_parsed.filedec and not args_parsed.interactive and not args_parsed.passwdmngr:
+		if not args_parsed.textdec and not args_parsed.textenc and not args_parsed.filenc and not args_parsed.filedec and not args_parsed.interactive and not args_parsed.passwdmngr and not args_parsed.flenc and not args_parsed.fldec:
 			print('{}v3cryp7{}: unrecognized mode'.format(color.RED,color.RESET))
 			print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
 #iv,key,salt=key_iv_generatorformechanics('kunj2004')
