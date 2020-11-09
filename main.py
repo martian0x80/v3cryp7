@@ -131,7 +131,7 @@ class mechanicsAES256:
 		salt,iv_de=enctext[:16],enctext[16:32]  #first 16 bytes are salt, next 16 are iv
 		key=PBKDF2(passwd.encode('utf-8'),salt,dkLen=32,count=10000)
 		cipher_config_detext=AES.new(key,AES.MODE_CBC,iv_de)
-		return unpad(cipher_config_detext.decrypt(enctext[32:]));
+		return _unpad(cipher_config_detext.decrypt(enctext[32:]));
 	
 '''
 iv,key,salt=key_iv_generatorformechanics('password')
@@ -325,17 +325,17 @@ def runtime_mode():
 	else:
 		#print(args_parsed.mode,args_parsed.inpf)
 		if args_parsed.filenc:
-			try:
-				print('\n[{}+{}]File Encryption Mode\n'.format(color.GREEN,color.RESET))
-				if not args_parsed.inpf=='':
-					if os.path.isfile(args_parsed.inpf):
-						iv,key,salt=key_iv_generatorformechanics(getpass.getpass('Enter password: '))
-						filenc=mechanicsAES256(iv,key,salt).encrypt_file(args_parsed.inpf,args_parsed.outf)
-						print('\'{}{}{}\' has been saved to {}/'.format(color.MAGENTA,str(filenc),color.RESET,os.getcwd()))
-					else: raise Exception('[{}!{}]File: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
-			except TypeError:
-				print('{}v3cryp7{}: No inputs given, \'-I\' is required, \'-O\' is optional'.format(color.RED,color.RESET))
-				print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
+			#try:
+			print('\n[{}+{}]File Encryption Mode\n'.format(color.GREEN,color.RESET))
+			if not args_parsed.inpf=='':
+				if os.path.isfile(args_parsed.inpf):
+					iv,key,salt=key_iv_generatorformechanics(getpass.getpass('Enter password: '))
+					filenc=mechanicsAES256(iv,key,salt).encrypt_file(args_parsed.inpf,args_parsed.outf)
+					print('\'{}{}{}\' has been saved to {}/'.format(color.MAGENTA,str(filenc),color.RESET,os.getcwd()))
+				else: raise Exception('[{}!{}]File: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
+			#except TypeError:
+			#	print('{}v3cryp7{}: No inputs given, \'-I\' is required, \'-O\' is optional'.format(color.RED,color.RESET))
+				#print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
 
 		if args_parsed.filedec:
 			try:
