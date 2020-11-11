@@ -49,12 +49,15 @@ class mechanicsAES256:
 		self.encsalt=salt
 		
 	def encrypt_file(self,filein,fileout=None,chunkSize=64*1024):
-		#filein=os.path.basename(os.path.splitext(filein))[0]		
+		#filein=os.path.basename(os.path.splitext(filein))[0]	
+		chunkl=0	
 		if not fileout:
 			fileout=filein+'.enc'
 		else:
 			fileout=fileout+'.enc'
 		filesize=os.path.getsize(filein)
+		if filesize>104857600:
+			print('\nFilesize is big, wait...')
 		cipher_config_en=AES.new(self.key,AES.MODE_CBC,self.iv)
 		with open(filein,'rb') as infile:
 			with open(fileout,'wb') as outfile:
@@ -66,7 +69,8 @@ class mechanicsAES256:
 					if len(chunk)==0:
 						break
 					elif len(chunk) % AES.block_size != 0:
-						chunk+=b' ' * (16 - len(chunk) % 16)
+						chunkl+=16-len(chunk)%16
+						chunk+=chr(chunkl).encode('utf-8') * chunkl	#changed padding from b' '*paddingneed to chr(paddingneed)
 					outfile.write(cipher_config_en.encrypt(chunk))
 				print('\nFile size: {}{}MiB or {}MB{}'.format(color.LIGHTGREEN_EX,float(filesize/(1024**2)),float(filesize/(1000**2)),color.RESET))
 				return str(fileout);
@@ -76,43 +80,27 @@ class mechanicsAES256:
 		#encfile=base64.b64decode(encfile)
 		if not plainTextfile:
 			plainTextfile=encfile.replace('.enc','')
+		tpfile=plainTextfile+'.decf'
 		with open(encfile,'rb') as infile:
 			filesize_original=struct.unpack('<Q',infile.read(struct.calcsize('Q')))[0]
 			salt=infile.read(16)
 			deckey=PBKDF2(passwd.encode('utf-8'),salt,dkLen=32,count=10000)
 			iv=infile.read(16)
 			cipher_config_de=AES.new(deckey,AES.MODE_CBC,iv)
-			with open(plainTextfile,'wb') as outfile:
+			with open(tpfile,'wb+') as tpfile:
 				while True:
 					chunk=infile.read(chunkSize)
 					if len(chunk)==0:
 						break
-					outfile.write(cipher_config_de.decrypt(chunk))
+					tpfile.write(cipher_config_de.decrypt(chunk))
+					tpfile.flush()
+				with open(plainTextfile,'wb') as outfile:
+					tpfile.seek(0)
+					outfile.write(_unpad(tpfile.read()))
+				os.remove(tpfile.name)
 				#outfile.truncate(filesize_original
 				print('\nFile size: {}{}MiB or {}MB{}'.format(color.LIGHTGREEN_EX,float(os.path.getsize(plainTextfile)/(1024**2)),float(os.path.getsize(plainTextfile)/(1000**2)),color.RESET))
 				return str(plainTextfile);
-				
-	def encrypt_folder(self,flin,flout=None): #no separate iv,salt,key,needed
-		dustlist=os.listdir(flin)
-		subdirs_path=[]
-		file_paths=[]
-		print('Scanning directory for files and folders.\n')
-		print('\n[{}*{}]Subdirectories found: '.format(color.MAGENTA,color.RESET))
-		for subdirs in dustlist:
-			if os.path.isdir(flin+'/'+subdirs): #doubtl
-				if '.git' in subdirs:
-					dustlist.remove('.git')
-				print('\t'+os.path.abspath(subdirs))
-				subdirs_path.append(os.path.abspath(subdirs))
-		print('[{}*{}]Files found: '.format(color.MAGENTA,color.RESET))
-		for dirpath,dirnames,filenames in os.walk(flin):
-			if '.git' in dirnames:
-				dirnames.remove('.git')
-			else:
-				for names in filenames:
-					print('\t'+os.path.join(dirpath,names))
-					file_paths.append(os.path.join(dirpath,names))
-		
 				
 	def encrypt_text(self,plainTexttoencrypt):
 		cipher_config_entext=AES.new(self.key,AES.MODE_CBC,self.iv)
@@ -148,7 +136,7 @@ def get_input(flag=False,exceptt=False): #to reduce code and logics
 			passwd = getpass.getpass('Enter session password: ')
 			return passwd;
 		else:
-			inp=raw_input('\n>> ')
+			inp=str(input('\n>> '))
 			if exceptt: #empty input exception when taking outfile file
 				return inp;
 			else:
@@ -161,6 +149,31 @@ def get_input(flag=False,exceptt=False): #to reduce code and logics
 		print('\n[{}!!{}]Execution stopped, user interruption.\n[{}!!{}]Exiting...'.format(color.RED,color.RESET,color.RED,color.RESET))
 		spinner()
 		sys.exit(1)
+		
+def encrypt_folder(flin,passwd): #no separate iv,salt,key,needed
+		dustlist=os.listdir(flin)
+		subdirs_path=[]
+		file_paths=[]
+		print('Scanning directory for files and folders.\n')
+		print('\n[{}*{}]Subdirectories found: '.format(color.MAGENTA,color.RESET))
+		for subdirs in dustlist:
+			if os.path.isdir(flin+'/'+subdirs): #doubtl
+				if '.git' in subdirs:
+					dustlist.remove('.git')
+				print('\t'+os.path.abspath(subdirs))
+				subdirs_path.append(os.path.abspath(subdirs))
+		print('[{}*{}]Files found: '.format(color.MAGENTA,color.RESET))
+		for dirpath,dirnames,filenames in os.walk(flin):
+			if '.git' in dirnames:
+				dirnames.remove('.git')
+			else:
+				for names in filenames:
+					print('\t'+os.path.join(dirpath,names))
+					file_paths.append(os.path.join(dirpath,names))
+		for files in file_paths:
+			iv,key,salt=key_iv_generatorformechanics(passwd)
+			y=mechanicsAES256(iv,key,salt).encrypt_file(files)
+		return len(file_paths);
 		
 def interactive_mode(flag=False): #interactive mode with argument switch -i or --interactive
 	if flag: #flag for faster menu access, no need of ambigious 'starting interactive mode...' everytime returning to menu 
@@ -179,7 +192,7 @@ def interactive_mode(flag=False): #interactive mode with argument switch -i or -
 	try:
 		inp=get_input()
 		if inp=='1' or inp=='textenc':
-			print('[{}++{}]Text Encryption Mode...'.format(color.GREEN,color.RESET))
+			print('\n[{}++{}]Text Encryption Mode...'.format(color.GREEN,color.RESET))
 			passwd=get_input(flag=True)
 			iv,key,salt=key_iv_generatorformechanics(passwd)
 			flagy=False
@@ -326,7 +339,7 @@ def runtime_mode():
 		#print(args_parsed.mode,args_parsed.inpf)
 		if args_parsed.filenc:
 			try:
-				print('\n[{}+{}]File Encryption Mode\n'.format(color.GREEN,color.RESET))
+				print('\n[{}+{}]File Encryption mode\n'.format(color.GREEN,color.RESET))
 				if not args_parsed.inpf=='':
 					if os.path.isfile(args_parsed.inpf):
 						iv,key,salt=key_iv_generatorformechanics(getpass.getpass('Enter password: '))
@@ -354,8 +367,8 @@ def runtime_mode():
 				print('\n[{}+{}]Folder Encryption Mode\n'.format(color.GREEN,color.RESET))
 				if not args_parsed.inpf=='':
 					if os.path.isdir(args_parsed.inpf):
-						y=mechanicsAES256(None,None,None).encrypt_folder(args_parsed.inpf)
-						print(y)
+						paths=encrypt_folder(args_parsed.inpf,getpass.getpass('Enter password: '))
+						print('\n{}{}{} files in {} are encrypted'.format(color.MAGENTA,paths,color.RESET,args_parsed.inpf))
 					else: raise Exception('[{}!{}]Folder: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
 			except TypeError:
 				print('{}v3cryp7{}: No inputs given, \'-I\' is required, \'-O\' is optional'.format(color.RED,color.RESET))
