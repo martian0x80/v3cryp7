@@ -66,9 +66,9 @@ class mechanicsAES256:
 					if len(chunk)==0:
 						break
 					elif len(chunk) % AES.block_size != 0:
-						chunk+=' ' * (16 - len(chunk) % 16)
+						chunk+=b' ' * (16 - len(chunk) % 16)
 					outfile.write(cipher_config_en.encrypt(chunk))
-				print('\nFile size: {}{}{}'.format(color.LIGHTGREEN_EX,filesize,color.RESET))
+				print('\nFile size: {}{}MiB or {}MB{}'.format(color.LIGHTGREEN_EX,float(filesize/(1024**2)),float(filesize/(1000**2)),color.RESET))
 				return str(fileout);
 				
 	@staticmethod
@@ -89,7 +89,7 @@ class mechanicsAES256:
 						break
 					outfile.write(cipher_config_de.decrypt(chunk))
 				#outfile.truncate(filesize_original
-				print('File size: {}{}{}'.format(color.LIGHTGREEN_EX,os.path.getsize(plainTextfile),color.RESET))
+				print('\nFile size: {}{}MiB or {}MB{}'.format(color.LIGHTGREEN_EX,float(os.path.getsize(plainTextfile)/(1024**2)),float(os.path.getsize(plainTextfile)/(1000**2)),color.RESET))
 				return str(plainTextfile);
 				
 	def encrypt_folder(self,flin,flout=None): #no separate iv,salt,key,needed
@@ -187,7 +187,7 @@ def interactive_mode(flag=False): #interactive mode with argument switch -i or -
 				print('\nInput the text to encrypt')
 				plaintext=get_input()
 				encrypt=mechanicsAES256(iv,key,salt).encrypt_text(plaintext)
-				print('\n{}Ciphertext{}: {}'.format(color.LIGHTGREEN_EX,color.RESET,base64.b64encode(encrypt)))
+				print('\n{}Ciphertext{}: {}'.format(color.LIGHTGREEN_EX,color.RESET,base64.b64encode(encrypt).decode('utf-8')))
 				print('\nMore text to encrypt? [y/N]')
 				inpp=get_input(exceptt=True)
 				if inpp=='Y' or inpp=='y':
@@ -206,7 +206,7 @@ def interactive_mode(flag=False): #interactive mode with argument switch -i or -
 				print('\nInput the text to decrypt')
 				ciphertext=get_input()
 				decrypt=mechanicsAES256.decrypt_text(passwd,base64.b64decode(ciphertext))
-				print('\n{}Plaintext{}: {}'.format(color.LIGHTGREEN_EX,color.RESET,base64.b64decode(decrypt)))
+				print('\n{}Plaintext{}: {}'.format(color.LIGHTGREEN_EX,color.RESET,base64.b64decode(decrypt).decode('utf-8')))
 				print('\nMore text to decrypt? [y/N]')
 				inpp=get_input(exceptt=True)
 				if inpp=='Y' or inpp=='y':
@@ -325,17 +325,17 @@ def runtime_mode():
 	else:
 		#print(args_parsed.mode,args_parsed.inpf)
 		if args_parsed.filenc:
-			#try:
-			print('\n[{}+{}]File Encryption Mode\n'.format(color.GREEN,color.RESET))
-			if not args_parsed.inpf=='':
-				if os.path.isfile(args_parsed.inpf):
-					iv,key,salt=key_iv_generatorformechanics(getpass.getpass('Enter password: '))
-					filenc=mechanicsAES256(iv,key,salt).encrypt_file(args_parsed.inpf,args_parsed.outf)
-					print('\'{}{}{}\' has been saved to {}/'.format(color.MAGENTA,str(filenc),color.RESET,os.getcwd()))
-				else: raise Exception('[{}!{}]File: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
-			#except TypeError:
-			#	print('{}v3cryp7{}: No inputs given, \'-I\' is required, \'-O\' is optional'.format(color.RED,color.RESET))
-				#print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
+			try:
+				print('\n[{}+{}]File Encryption Mode\n'.format(color.GREEN,color.RESET))
+				if not args_parsed.inpf=='':
+					if os.path.isfile(args_parsed.inpf):
+						iv,key,salt=key_iv_generatorformechanics(getpass.getpass('Enter password: '))
+						filenc=mechanicsAES256(iv,key,salt).encrypt_file(args_parsed.inpf,args_parsed.outf)
+						print('\'{}{}{}\' has been saved to {}/'.format(color.MAGENTA,str(filenc),color.RESET,os.getcwd()))
+					else: raise Exception('[{}!{}]File: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
+			except TypeError:
+				print('{}v3cryp7{}: No inputs given, \'-I\' is required, \'-O\' is optional'.format(color.RED,color.RESET))
+				print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
 
 		if args_parsed.filedec:
 			try:
@@ -367,13 +367,13 @@ def runtime_mode():
 				if not args_parsed.ptext=='':
 					iv,key,salt=key_iv_generatorformechanics(getpass.getpass('Enter password: '))
 					textenc=mechanicsAES256(iv,key,salt).encrypt_text(args_parsed.ptext)
-					print('\n{}Cipher text{}: {}\n'.format(color.LIGHTGREEN_EX,color.RESET,base64.b64encode(textenc)))
+					print('\n{}Cipher text{}: {}\t(base64)\n'.format(color.LIGHTGREEN_EX,color.RESET,base64.b64encode(textenc).decode('utf-8')))
 					#print('Want the cipher text saved to a file? [y/N]')
 					if args_parsed.output:
 						#ask=raw_input('\n>> ')
 						#if ask=='y' or ask=='Y':
 						with open('ciphertext'+str(time.time())+'.txt','wr+') as cipherfile:
-							cipherfile.write(str(base64.b64encode(textenc)))
+							cipherfile.write(base64.b64encode(textenc).decode('utf-8'))
 							print('File: \'{}{}{}\' saved in {}'.format(color.MAGENTA,str(cipherfile.name),color.RESET,str(os.getcwd())))
 			except TypeError:
 				print('{}v3cryp7{}: No inputs given, \'--ptext\' is required'.format(color.RED,color.RESET))
@@ -384,9 +384,14 @@ def runtime_mode():
 				print('\n[{}+{}]Text Decryption Mode\n'.format(color.GREEN,color.RESET))
 				if not args_parsed.ctext=='':
 					textdec=mechanicsAES256.decrypt_text(getpass.getpass('Enter password: '),base64.b64decode(args_parsed.ctext))
-					print('\n{}Decrypted text{}: {}'.format(color.LIGHTGREEN_EX,color.RESET,textdec))
+					print('\n{}Decrypted text{}: {}'.format(color.LIGHTGREEN_EX,color.RESET,textdec.decode('utf-8')))
 					if textdec=='':
 						print("[{}!{}]Invalid password or no decryption occured.\n".format(color.RED,color.RESET))
+					else:
+						if args_parsed.output:
+							with open('plaintext'+str(time.time())+'.txt','wr+') as plaintextfile:
+								plaintextfile.write(textdec.decode('utf-8'))
+								print('File: \'{}{}{}\' saved in {}'.format(color.MAGENTA,str(plaintextfile.name),color.RESET,str(os.getcwd())))
 			except TypeError:
 				print('{}v3cryp7{}: No inputs given, \'--ctext\' is required'.format(color.RED,color.RESET))
 				print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
