@@ -10,6 +10,8 @@ import textwrap
 import getpass
 import time
 from colorama import Fore as color
+import zipfile
+
 dic=dict()
 
 def clear_screen():
@@ -374,6 +376,13 @@ def runtime_mode():
 				print('{}v3cryp7{}: No inputs given, \'-I\' is required, \'-O\' is optional'.format(color.RED,color.RESET))
 				print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
 		
+		if args_parsed.fldec:
+			try:
+				print('\n[{}+{}]Folder Decryption Mode\n'.format(color.GREEN,color.RESET))
+				#if not args_parsed.inpf=='':
+			except TypeError:
+				print('{}v3cryp7{}: No inputs given, \'-I\' is required, \'-O\' is optional'.format(color.RED,color.RESET))
+				print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
 		if args_parsed.textenc: #add clipboard support
 			try:
 				print('\n[{}+{}]Text Encryption Mode\n'.format(color.GREEN,color.RESET))
@@ -385,7 +394,7 @@ def runtime_mode():
 					if args_parsed.output:
 						#ask=raw_input('\n>> ')
 						#if ask=='y' or ask=='Y':
-						with open('ciphertext'+str(time.time())+'.txt','wr+') as cipherfile:
+						with open('ciphertext'+str(time.time())+'.txt','w') as cipherfile:
 							cipherfile.write(base64.b64encode(textenc).decode('utf-8'))
 							print('File: \'{}{}{}\' saved in {}'.format(color.MAGENTA,str(cipherfile.name),color.RESET,str(os.getcwd())))
 			except TypeError:
@@ -402,7 +411,7 @@ def runtime_mode():
 						print("[{}!{}]Invalid password or no decryption occured.\n".format(color.RED,color.RESET))
 					else:
 						if args_parsed.output:
-							with open('plaintext'+str(time.time())+'.txt','wr+') as plaintextfile:
+							with open('plaintext'+str(time.time())+'.txt','w') as plaintextfile:
 								plaintextfile.write(textdec.decode('utf-8'))
 								print('File: \'{}{}{}\' saved in {}'.format(color.MAGENTA,str(plaintextfile.name),color.RESET,str(os.getcwd())))
 			except TypeError:
@@ -418,4 +427,5 @@ def runtime_mode():
 			print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
 #iv,key,salt=key_iv_generatorformechanics('kunj2004')
 #mechanicsAES256.decrypt_file('en.py.enc','kunj2004')
-runtime_mode()
+if __name__=="__main__":
+	runtime_mode()
