@@ -11,7 +11,7 @@ import getpass
 import time
 import timeit
 from colorama import Fore as color
-import shutil
+import tarfile
 
 dic=dict()
 
@@ -106,6 +106,9 @@ class mechanicsAES256:
 		if not plainTextfile:
 			plainTextfile=encfile.replace('.enc','')
 		tpfile=plainTextfile+'.decf'
+		filesize=os.path.getsize(encfile)
+		if filesize>104857600:
+			print('\nFilesize is big, wait...')
 		with open(encfile,'rb') as infile:
 			filesize_original=struct.unpack('<Q',infile.read(struct.calcsize('Q')))[0]
 			salt=infile.read(16)
@@ -113,6 +116,7 @@ class mechanicsAES256:
 			iv=infile.read(16)
 			cipher_config_de=AES.new(deckey,AES.MODE_CBC,iv)
 			with open(tpfile,'wb+') as tpfile:
+				start=timeit.default_timer()
 				while True:
 					chunk=infile.read(chunkSize)
 					if len(chunk)==0:
@@ -122,9 +126,11 @@ class mechanicsAES256:
 				with open(plainTextfile,'wb') as outfile:
 					tpfile.seek(0)
 					outfile.write(_unpad(tpfile.read()))
+				stop=timeit.default_timer()	
 				os.remove(tpfile.name)
 				#outfile.truncate(filesize_original
 				print('\nFile size: {}{}MiB or {}MB{}'.format(color.LIGHTGREEN_EX,float(os.path.getsize(plainTextfile)/(1024**2)),float(os.path.getsize(plainTextfile)/(1000**2)),color.RESET))
+				print('Decryption time: {}{}s{}'.format(color.LIGHTMAGENTA_EX,stop-start,color.RESET))
 				return str(plainTextfile);
 				
 	def encrypt_text(self,plainTexttoencrypt):
@@ -175,7 +181,9 @@ def get_input(flag=False,exceptt=False): #to reduce code and logics
 		spinner()
 		sys.exit(1)
 		
-def encrypt_folder(flin,passwd): #no separate iv,salt,key needed, generates for each file
+def encrypt_folder(flin,passwd,flout): #no separate iv,salt,key needed, generates for each file
+		if not flout:
+			flout=flin
 		dustlist=os.listdir(flin)
 		subdirs_path=[]
 		file_paths=[]
@@ -210,13 +218,18 @@ def encrypt_folder(flin,passwd): #no separate iv,salt,key needed, generates for 
 				os.remove(files)
 		stop=timeit.default_timer()
 		print('\nEncryption timed for all files: {}{}s{}\nArchiving and encrypting again.'.format(color.LIGHTMAGENTA_EX,stop-start,color.RESET))
-		shutil.make_archive(flin,'gztar',flin)
+		tarfile.shutil.make_archive(flout,'tar',flin)
 		#finally encrypt the archived directory
 		iv,key,salt=key_iv_generatorformechanics(passwd)
-		y=mechanicsAES256(iv,key,salt).encrypt_file(flin+'.tar.gz')
-		os.remove(flin+'.tar.gz')
+		y=mechanicsAES256(iv,key,salt).encrypt_file(flout+'.tar')
+		os.remove(flout+'.tar')
 		return len(file_paths);
 		
+def decrypt_folder(flin,passwd,flout):
+		dec_archive=mechanicsAES256.decrypt_file(flin,passwd)
+		assert tarfile.is_tarfile(dec_archive)
+		
+
 def interactive_mode(flag=False): #interactive mode with argument switch -i or --interactive
 	if flag: #flag for faster menu access, no need of ambigious 'starting interactive mode...' everytime returning to menu 
 		print(color.GREEN+"\t\tStarting interactive mode..."+color.RESET)
@@ -227,8 +240,9 @@ def interactive_mode(flag=False): #interactive mode with argument switch -i or -
 	2. Text Decryption	(2 or textdec)
 	3. File Encryption	(3 or filenc)
 	4. File Decryption	(4 or filedec)
-	5. Password Manager	(5 or passwdmngr)
-	6. Exit (6 or exit)
+	5. Folder Encryption (5 or flenc)
+	6. Folder Decryption (6 or fldec)
+	99. Exit (99 or exit)
 	''' #add keyboard ctrl+c support
 	print(menu)
 	try:
@@ -317,11 +331,32 @@ def interactive_mode(flag=False): #interactive mode with argument switch -i or -
 			clear_screen()
 			interactive_mode()
 			
-		elif inp=='5' or inp=='passwdmngr':
+		elif inp=='5' or inp=='flenc':
+			print('[{}++{}]Folder Encryption Mode...'.format(color.GREEN,color.RESET))
+			fileout=None
+			passwd=get_input(flag=True)
+			flagy=False
+			while flagy==False:
+				print('\nThe folder to encrypt [{}*{}]'.format(color.MAGENTA,color.RESET))
+				filein=get_input()
+				print('\nOutput file name [you can skip it]')
+				fileout=get_input(exceptt=True)
+				encrypt_folder(filein,passwd,fileout)
+				print('\nMore folders to encrypt? [y/N]')
+				inpp=get_input(exceptt=True)
+				if inpp=='Y' or inpp=='y':
+					pass
+				else:
+					print('[{}-{}]Taking back to menu...'.format(color.CYAN,color.RESET))
+					flagy=True
+			clear_screen()
+			interactive_mode()
+			
+		elif inp=='7' or inp=='passwdmngr':
 			print('[{}++{}]Password Manager...'.format(color.GREEN,color.RESET))
 			#password manager
 			
-		elif inp=='6' or inp=='exit' or inp=='quit':
+		elif inp=='99' or inp=='exit' or inp=='quit':
 			print('[{}!!{}] Execution stopped, user interruption.\n[{}!!{}]Exiting...'.format(color.RED,color.RESET,color.RED,color.RESET))
 			spinner()
 			clear_screen()
@@ -341,7 +376,7 @@ def runtime_mode():
 	desc='''
 	v3cryp7: File encryption/decryption with AES-256, Password manager tool written in Python\n
 	file modes : {0} & {1}\n
-	\'-I\' is required in file modes, but \'-O\' is optional\n
+	\'-I\' is required in file modes for input file, but \'-O\' is optional for output file name\n
 	text modes : {2} & {3}\n
 	Either \'--ptext\' or \'--ctext\' is required in text modes
 	for {4} \'--ptext\' is required
@@ -398,7 +433,7 @@ def runtime_mode():
 				if not args_parsed.inpf=='':
 					if os.path.isfile(args_parsed.inpf):
 						filedec=mechanicsAES256.decrypt_file(args_parsed.inpf,getpass.getpass('Enter password: '),args_parsed.outf)
-						print('\n\'{}{}{}\' has been saved to {}/'.format(color.MAGENTA,str(filedec),color.RESET,os.getcwd()))
+						print('\'{}{}{}\' has been saved to {}/'.format(color.MAGENTA,str(filedec),color.RESET,os.getcwd()))
 					else: raise Exception('[{}!{}]File: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
 			except TypeError:
 				print('{}v3cryp7{}: No inputs given, \'-I\' is required, \'-O\' is optional'.format(color.RED,color.RESET))
@@ -410,7 +445,7 @@ def runtime_mode():
 				if not args_parsed.inpf=='':
 					if os.path.isdir(args_parsed.inpf):
 						start=timeit.default_timer()
-						filec=encrypt_folder(args_parsed.inpf,getpass.getpass('Enter password: '))
+						filec=encrypt_folder(args_parsed.inpf,getpass.getpass('Enter password: '),args_parsed.outf)
 						stop=timeit.default_timer()
 						print('\n{}{}{} files in \'{}\' are encrypted\nTime elapsed: {}{}{}'.format(color.MAGENTA,filec,color.RESET,args_parsed.inpf,color.LIGHTMAGENTA_EX,stop-start,color.RESET))
 					else: raise Exception('[{}!{}]Folder: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
@@ -421,7 +456,11 @@ def runtime_mode():
 		if args_parsed.fldec:
 			try:
 				print('\n[{}+{}]Folder Decryption Mode\n'.format(color.GREEN,color.RESET))
-				#if not args_parsed.inpf=='':
+				if not args_parsed.inpf=='':
+					if os.path.isfile(args_parsed.inpf):
+						start=timeit.default_timer()
+						decrypt_folder(args_parsed.inpf,getpass.getpass('Enter password: '),args_parsed.outf)
+						stop=timeit.default_timer()
 			except TypeError:
 				print('{}v3cryp7{}: No inputs given, \'-I\' is required, \'-O\' is optional'.format(color.RED,color.RESET))
 				print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
