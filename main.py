@@ -96,7 +96,8 @@ class mechanicsAES256:
 						chunk+=chr(chunkl).encode('utf-8') * chunkl	#changed padding from b' '*paddingneed to chr(paddingneed)
 					outfile.write(cipher_config_en.encrypt(chunk))
 				stop=timeit.default_timer()
-				print('\nFile size: {}{}MiB or {}MB{}'.format(color.LIGHTGREEN_EX,float(filesize/(1024**2)),float(filesize/(1000**2)),color.RESET))
+				print('\nFile : {}{}{}'.format(color.MAGENTA,fileout,color,RESET))
+				print('File size: {}{}MiB or {}MB{}'.format(color.LIGHTGREEN_EX,float(filesize/(1024**2)),float(filesize/(1000**2)),color.RESET))
 				print('Encryption time: {}{}s{}'.format(color.LIGHTMAGENTA_EX,stop-start,color.RESET))
 				return str(fileout);
 				
@@ -115,8 +116,8 @@ class mechanicsAES256:
 			deckey=PBKDF2(passwd.encode('utf-8'),salt,dkLen=32,count=10000)
 			iv=infile.read(16)
 			cipher_config_de=AES.new(deckey,AES.MODE_CBC,iv)
+			start=timeit.default_timer()
 			with open(tpfile,'wb+') as tpfile:
-				start=timeit.default_timer()
 				while True:
 					chunk=infile.read(chunkSize)
 					if len(chunk)==0:
@@ -128,8 +129,9 @@ class mechanicsAES256:
 					outfile.write(_unpad(tpfile.read()))
 				stop=timeit.default_timer()	
 				os.remove(tpfile.name)
-				#outfile.truncate(filesize_original
-				print('\nFile size: {}{}MiB or {}MB{}'.format(color.LIGHTGREEN_EX,float(os.path.getsize(plainTextfile)/(1024**2)),float(os.path.getsize(plainTextfile)/(1000**2)),color.RESET))
+				#outfile.truncate(filesize_original)
+				print('\nFile : {}{}{}'.format(color.MAGENTA,plainTextfile,color,RESET))
+				print('File size: {}{}MiB or {}MB{}'.format(color.LIGHTGREEN_EX,float(os.path.getsize(plainTextfile)/(1024**2)),float(os.path.getsize(plainTextfile)/(1000**2)),color.RESET))
 				print('Decryption time: {}{}s{}'.format(color.LIGHTMAGENTA_EX,stop-start,color.RESET))
 				return str(plainTextfile);
 				
