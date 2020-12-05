@@ -256,11 +256,12 @@ def encrypt_folder(flin,passwd,flout):
 	return count;
 
 def decrypt_folder(flin,passwd,flout):
-		decfl=mechanicsAES256.decrypt_file(flin,passwd)
+		decfl=mechanicsAES256.decrypt_file(flin,passwd,flout)
 		assert tarfile.is_tarfile(decfl)
 		with tarfile.open(decfl,'r:gz') as fl:
+			os.mkdir('Decrypted')
+			os.chdir('Decrypted')
 			fl.extractall()
-		os.rename(flin,flout)
 
 def interactive_mode(flag=False): #interactive mode with argument switch -i or --interactive
 	if flag: #flag for faster menu access, no need of ambigious 'starting interactive mode...' everytime returning to menu 
@@ -472,16 +473,16 @@ def runtime_mode():
 				print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
 				
 		if args_parsed.flenc:
-			#try:
-			print('\n[{}+{}]Folder Encryption Mode\n'.format(color.GREEN,color.RESET))
-			if not args_parsed.inpf=='':
-				if os.path.isdir(args_parsed.inpf):
-					start=timeit.default_timer()
-					filec=encrypt_folder(args_parsed.inpf,getpass.getpass('Enter password: '),args_parsed.outf)
-					stop=timeit.default_timer()
-					print('\n{}{}{} files in \'{}\' are encrypted\nTime elapsed: {}{}{}'.format(color.MAGENTA,filec,color.RESET,args_parsed.inpf,color.LIGHTMAGENTA_EX,stop-start,color.RESET))
-				else: raise Exception('[{}!{}]Folder: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
-			#except TypeError:
+			try:
+				print('\n[{}+{}]Folder Encryption Mode\n'.format(color.GREEN,color.RESET))
+				if not args_parsed.inpf=='':
+					if os.path.isdir(args_parsed.inpf):
+						start=timeit.default_timer()
+						filec=encrypt_folder(args_parsed.inpf,getpass.getpass('Enter password: '),args_parsed.outf)
+						stop=timeit.default_timer()
+						print('\n{}{}{} files in \'{}\' are encrypted\nTime elapsed: {}{}{}'.format(color.MAGENTA,filec,color.RESET,args_parsed.inpf,color.LIGHTMAGENTA_EX,stop-start,color.RESET))
+					else: raise Exception('[{}!{}]Folder: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
+			except TypeError:
 				print('{}v3cryp7{}: No inputs given, \'-I\' is required, \'-O\' is optional'.format(color.RED,color.RESET))
 				print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
 		
