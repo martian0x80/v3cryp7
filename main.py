@@ -74,7 +74,10 @@ class mechanicsAES256:
 		#filein=os.path.basename(os.path.splitext(filein))[0]	
 		chunkl=0	
 		if not fileout:
-			fileout=filein+'.enc'
+			if filein[-7:]=='.tar.gz':
+				fileout=filein[:-7]+'.flenc'
+			else:
+				fileout=filein+'.enc'
 		else:
 			fileout=fileout+'.enc'
 		filesize=os.path.getsize(filein)
@@ -96,7 +99,7 @@ class mechanicsAES256:
 						chunk+=chr(chunkl).encode('utf-8') * chunkl	#changed padding from b' '*paddingneed to chr(paddingneed)
 					outfile.write(cipher_config_en.encrypt(chunk))
 				stop=timeit.default_timer()
-				print('\nFile : {}{}{}'.format(color.MAGENTA,fileout,color,RESET))
+				print('\nFile : {}{}{}'.format(color.MAGENTA,fileout,color.RESET))
 				print('File size: {}{}MiB or {}MB{}'.format(color.LIGHTGREEN_EX,float(filesize/(1024**2)),float(filesize/(1000**2)),color.RESET))
 				print('Encryption time: {}{}s{}'.format(color.LIGHTMAGENTA_EX,stop-start,color.RESET))
 				return str(fileout);
@@ -106,6 +109,8 @@ class mechanicsAES256:
 		#encfile=base64.b64decode(encfile)
 		if not plainTextfile:
 			plainTextfile=encfile.replace('.enc','')
+			if encfile[-6:]=='.flenc':
+				plainTextfile=encfile.replace('.flenc','')+'_decrypted'
 		tpfile=plainTextfile+'.decf'
 		filesize=os.path.getsize(encfile)
 		if filesize>104857600:
@@ -130,7 +135,7 @@ class mechanicsAES256:
 				stop=timeit.default_timer()	
 				os.remove(tpfile.name)
 				#outfile.truncate(filesize_original)
-				print('\nFile : {}{}{}'.format(color.MAGENTA,plainTextfile,color,RESET))
+				print('\nFile : {}{}{}'.format(color.MAGENTA,plainTextfile,color.RESET))
 				print('File size: {}{}MiB or {}MB{}'.format(color.LIGHTGREEN_EX,float(os.path.getsize(plainTextfile)/(1024**2)),float(os.path.getsize(plainTextfile)/(1000**2)),color.RESET))
 				print('Decryption time: {}{}s{}'.format(color.LIGHTMAGENTA_EX,stop-start,color.RESET))
 				return str(plainTextfile);
@@ -182,7 +187,7 @@ def get_input(flag=False,exceptt=False): #to reduce code and logics
 		print('\n[{}!!{}]Execution stopped, user interruption.\n[{}!!{}]Exiting...'.format(color.RED,color.RESET,color.RED,color.RESET))
 		spinner()
 		sys.exit(1)
-		
+'''		Deprecated way, inefficient and prone to problems
 def encrypt_folder(flin,passwd,flout): #no separate iv,salt,key needed, generates for each file
 		if not flout:
 			flout=flin
@@ -210,27 +215,52 @@ def encrypt_folder(flin,passwd,flout): #no separate iv,salt,key needed, generate
 				for names in filenames:
 					print('\t'+os.path.join(dirpath,names))
 					file_paths.append(os.path.join(dirpath,names))
-		print('\n[{}!{}]Do you want the original files deleted? [Y/n]'.format(color.RED,color.RESET))
-		remfiles=get_input()
-		start=timeit.default_timer()
-		for files in file_paths:
-			iv,key,salt=key_iv_generatorformechanics(passwd)
-			y=mechanicsAES256(iv,key,salt).encrypt_file(files)
-			if remfiles=='Y' or remfiles=='y' or remfiles=='yes': #might cause inaccurate encryption benchmark
-				os.remove(files)
-		stop=timeit.default_timer()
-		print('\nEncryption timed for all files: {}{}s{}\nArchiving and encrypting again.'.format(color.LIGHTMAGENTA_EX,stop-start,color.RESET))
+		#print('\n[{}!{}]Do you want the original files deleted? [Y/n]'.format(color.RED,color.RESET))
+		#remfiles=get_input()
+		#start=timeit.default_timer()
+		#for files in file_paths:
+			#iv,key,salt=key_iv_generatorformechanics(passwd)
+			#y=mechanicsAES256(iv,key,salt).encrypt_file(files)
+			#if remfiles=='Y' or remfiles=='y' or remfiles=='yes': #might cause inaccurate encryption benchmark
+			#	os.remove(files)
+		#stop=timeit.default_timer()
+		#print('\nEncryption timed for all files: {}{}s{}\nArchiving and encrypting again.'.format(color.LIGHTMAGENTA_EX,stop-start,color.RESET))
 		tarfile.shutil.make_archive(flout,'tar',flin)
 		#finally encrypt the archived directory
 		iv,key,salt=key_iv_generatorformechanics(passwd)
 		y=mechanicsAES256(iv,key,salt).encrypt_file(flout+'.tar')
 		os.remove(flout+'.tar')
 		return len(file_paths);
-		
+'''
+	
+def encrypt_folder(flin,passwd,flout):
+	count=0
+	if not flout:
+		flout=flin
+	print('[{}*{}]Files found: '.format(color.MAGENTA,color.RESET))
+	for dirpath,dirnames,filenames in os.walk(flin):
+		if '.git' in dirnames:
+			dirnames.remove('.git')
+		else:
+			for names in filenames:
+				print('\t'+os.path.join(dirpath,names))
+				count+=1
+	print('\n[{}-{}]Archiving files and Encrypting.'.format(color.CYAN,color.RESET))
+	tarfile.shutil.make_archive(flout,'gztar',flin,verbose=1)
+	iv,key,salt=key_iv_generatorformechanics(passwd)
+	start=timeit.default_timer()
+	_=mechanicsAES256(iv,key,salt).encrypt_file(flout+'.tar.gz')
+	stop=timeit.default_timer()
+	print('\nEncryption time for archived file: {}{}s{}'.format(color.LIGHTMAGENTA_EX,stop-start,color.RESET))
+	os.remove(flout+'.tar.gz')
+	return count;
+
 def decrypt_folder(flin,passwd,flout):
-		dec_archive=mechanicsAES256.decrypt_file(flin,passwd)
-		assert tarfile.is_tarfile(dec_archive)
-		
+		decfl=mechanicsAES256.decrypt_file(flin,passwd)
+		assert tarfile.is_tarfile(decfl)
+		with tarfile.open(decfl,'r:gz') as fl:
+			fl.extractall()
+		os.rename(flin,flout)
 
 def interactive_mode(flag=False): #interactive mode with argument switch -i or --interactive
 	if flag: #flag for faster menu access, no need of ambigious 'starting interactive mode...' everytime returning to menu 
@@ -442,16 +472,16 @@ def runtime_mode():
 				print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
 				
 		if args_parsed.flenc:
-			try:
-				print('\n[{}+{}]Folder Encryption Mode\n'.format(color.GREEN,color.RESET))
-				if not args_parsed.inpf=='':
-					if os.path.isdir(args_parsed.inpf):
-						start=timeit.default_timer()
-						filec=encrypt_folder(args_parsed.inpf,getpass.getpass('Enter password: '),args_parsed.outf)
-						stop=timeit.default_timer()
-						print('\n{}{}{} files in \'{}\' are encrypted\nTime elapsed: {}{}{}'.format(color.MAGENTA,filec,color.RESET,args_parsed.inpf,color.LIGHTMAGENTA_EX,stop-start,color.RESET))
-					else: raise Exception('[{}!{}]Folder: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
-			except TypeError:
+			#try:
+			print('\n[{}+{}]Folder Encryption Mode\n'.format(color.GREEN,color.RESET))
+			if not args_parsed.inpf=='':
+				if os.path.isdir(args_parsed.inpf):
+					start=timeit.default_timer()
+					filec=encrypt_folder(args_parsed.inpf,getpass.getpass('Enter password: '),args_parsed.outf)
+					stop=timeit.default_timer()
+					print('\n{}{}{} files in \'{}\' are encrypted\nTime elapsed: {}{}{}'.format(color.MAGENTA,filec,color.RESET,args_parsed.inpf,color.LIGHTMAGENTA_EX,stop-start,color.RESET))
+				else: raise Exception('[{}!{}]Folder: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
+			#except TypeError:
 				print('{}v3cryp7{}: No inputs given, \'-I\' is required, \'-O\' is optional'.format(color.RED,color.RESET))
 				print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
 		
@@ -463,6 +493,7 @@ def runtime_mode():
 						start=timeit.default_timer()
 						decrypt_folder(args_parsed.inpf,getpass.getpass('Enter password: '),args_parsed.outf)
 						stop=timeit.default_timer()
+					else: raise Exception('[{}!{}]File: \'{}{}{}\' does not exist'.format(color.RED,color.RESET,color.RED,args_parsed.inpf,color.RESET))
 			except TypeError:
 				print('{}v3cryp7{}: No inputs given, \'-I\' is required, \'-O\' is optional'.format(color.RED,color.RESET))
 				print('{}v3cryp7{}: Try \'v3cryp7 --help\' for more information'.format(color.RED,color.RESET))
