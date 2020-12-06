@@ -256,13 +256,15 @@ def encrypt_folder(flin,passwd,flout):
 	return count;
 
 def decrypt_folder(flin,passwd,flout):
+		curr_dir=os.path.abspath(os.getcwd())
 		decfl=mechanicsAES256.decrypt_file(flin,passwd,flout)
 		assert tarfile.is_tarfile(decfl)
 		with tarfile.open(decfl,'r:gz') as fl:
-			os.mkdir('Decrypted')
-			os.chdir('Decrypted')
+			os.makedirs('Decrypted/'+flin.replace('.flenc',''))
+			os.chdir('Decrypted/'+flin.replace('.flenc',''))
 			fl.extractall()
-
+		os.chdir(curr_dir)
+		os.remove(decfl)
 def interactive_mode(flag=False): #interactive mode with argument switch -i or --interactive
 	if flag: #flag for faster menu access, no need of ambigious 'starting interactive mode...' everytime returning to menu 
 		print(color.GREEN+"\t\tStarting interactive mode..."+color.RESET)
@@ -276,7 +278,7 @@ def interactive_mode(flag=False): #interactive mode with argument switch -i or -
 	5. Folder Encryption (5 or flenc)
 	6. Folder Decryption (6 or fldec)
 	99. Exit (99 or exit)
-	''' #add keyboard ctrl+c support
+	'''
 	print(menu)
 	try:
 		inp=get_input()
@@ -384,6 +386,27 @@ def interactive_mode(flag=False): #interactive mode with argument switch -i or -
 					flagy=True
 			clear_screen()
 			interactive_mode()
+		
+		elif inp=='6' or inp=='fldec':
+			print('[{}++{}]Folder Decryption Mode...'.format(color.GREEN,color.RESET))
+			fileout=None
+			passwd=get_input(flag=True)
+			flagy=False
+			while flagy==False:
+				print('\nThe folder to decrypt [{}*{}]'.format(color.MAGENTA,color.RESET))
+				filein=get_input()
+				print('\nOutput file name [you can skip it]')
+				fileout=get_input(exceptt=True)
+				decrypt_folder(filein,passwd,fileout)
+				print('\nMore files to decrypt? [y/N]')
+				inpp=get_input(exceptt=True)
+				if inpp=='Y' or inpp=='y':
+					pass
+				else:
+					print('[{}-{}]Taking back to menu...'.format(color.CYAN,color.RESET))
+					flagy=True
+			clear_screen()
+			interactive_mode()
 			
 		elif inp=='7' or inp=='passwdmngr':
 			print('[{}++{}]Password Manager...'.format(color.GREEN,color.RESET))
@@ -426,7 +449,7 @@ def runtime_mode():
 	'''.format(modes[0],modes[1],modes[2],modes[3],modes[4])
 	parser=argparse.ArgumentParser(prog='v3cryp7',usage='use: %(prog)s [mode]... [options]...',prefix_chars='-',description=textwrap.dedent(desc),formatter_class=RawTextHelpFormatter,epilog='Enjoy!')
 	parser.add_argument('-i','--interactive',action='store_true',help='use this option to enable interactive mode')
-	#parser.add_argument('mode',action='store',help=textwrap.dedent(mode)) not reasonable
+	#parser.add_argument('mode',action='store',help=textwrap.dedent(mode)) 
 	mode=parser.add_argument_group('mode')
 	mode.add_argument('--filenc',action='store_true',help='File Encryption Mode')
 	mode.add_argument('--filedec',action='store_true',help='File Decryption Mode')
