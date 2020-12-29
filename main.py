@@ -149,7 +149,7 @@ class mechanicsAES256:
 			elif len(plainTexttoencrypt) % 16 != 0:
 				chunkl += 16 - len(plainTexttoencrypt)%16
 				plainTexttoencrypt+=chr(chunkl)*chunkl
-			return self.encsalt+self.iv+cipher_config_entext.encrypt(plainTexttoencrypt) #doubtful
+			return self.encsalt+self.iv+cipher_config_entext.encrypt(plainTexttoencrypt.encode('utf-8')) #doubtful
 			
 	@staticmethod	
 	def decrypt_text(passwd,enctext):
