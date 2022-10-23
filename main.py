@@ -262,7 +262,26 @@ def decrypt_folder(flin,passwd,flout):
 		with tarfile.open(decfl,'r:gz') as fl:
 			os.makedirs('Decrypted/'+flin.replace('.flenc',''))
 			os.chdir('Decrypted/'+flin.replace('.flenc',''))
-			fl.extractall()
+def is_within_directory(directory, target):
+	
+	abs_directory = os.path.abspath(directory)
+	abs_target = os.path.abspath(target)
+
+	prefix = os.path.commonprefix([abs_directory, abs_target])
+	
+	return prefix == abs_directory
+
+def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+
+	for member in tar.getmembers():
+		member_path = os.path.join(path, member.name)
+		if not is_within_directory(path, member_path):
+			raise Exception("Attempted Path Traversal in Tar File")
+
+	tar.extractall(path, members, numeric_owner=numeric_owner) 
+	
+
+safe_extract(fl)
 		os.chdir(curr_dir)
 		os.remove(decfl)
 def interactive_mode(flag=False): #interactive mode with argument switch -i or --interactive
