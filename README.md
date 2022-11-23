@@ -1,4 +1,4 @@
 # v3cryp7
-File/text/folder encryption/decryption script
-no windows support, winerrors involving permissions
-tested on linux mint
+AES-256 based file/text/folder encryption/decryption script written in Python.
+Just works.
+Tested on linux mint.
